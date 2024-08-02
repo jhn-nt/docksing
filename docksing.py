@@ -48,13 +48,17 @@ class DockSing:
         iid=image.id.split(":")[1]
         self.ssh.exec_command(f"cd {workdir}; srun singularity build {iid}.sif docker-archive://{iid}.tar")
 
+    @staticmethod
+    def __parse_docker__(docker_config):
+        pass
+
 
     def submit(self,tag:str,workdir:str,config):
         image=self.docker.images.get(tag)
         iid=image.id.split(":")[1]
 
-        slurm_cmd="srun"+" ".join([f"{command}={value}" for (command,value) in config["slurm"].items()])
-        docker_cmd="singularity run"+" ".join([f" {command}={value} " for (command,value) in config["docker"].items()])
+        slurm_cmd="srun"+" ".join([f"--{command}={value}" for (command,value) in config["slurm"].items()])
+        docker_cmd="singularity run"+" ".join([f"{command}={value} " for (command,value) in config["docker"].items()]) 
         commands_cmd="".join(config["commands"])
         self.ssh.exec_command(f"cd {workdir}; {slurm_cmd} {docker_cmd} {iid}.sif {commands_cmd}")
         

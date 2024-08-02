@@ -55,7 +55,7 @@ class DockSing:
 
         slurm_cmd="srun"+" ".join([f"{command}={value}" for (command,value) in config["slurm"].items()])
         docker_cmd="singularity run"+" ".join([f" {command}={value} " for (command,value) in config["docker"].items()])
-        commands_cmd=" ".join([f" {command}={value} " for (command,value) in config["commands"].items()])
+        commands_cmd="".join(config["commands"])
         self.ssh.exec_command(f"cd {workdir}; {slurm_cmd} {docker_cmd} {iid}.sif {commands_cmd}")
         
 
@@ -68,7 +68,9 @@ if __name__=="__main__":
 
     parser.add_argument("--ssh",action="store",required=True)
     parser.add_argument("--config",action="store",required=True)
+    parser.add_argument("--local",action="store_true")
     parser.add_argument("tag",action="store")
+
 
 
 

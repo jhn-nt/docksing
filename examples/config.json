@@ -1,0 +1,6 @@
+{
+    "workdir":"a_docksing_example",
+    "slurm":{"nodes":1,"cpus-per-task":1,"job-name":"docksing_test"},
+    "docker":{"environment":{"TESTENV":"this is a test!"}},
+    "commands":["Hello!",">","docksing.txt"]
+}

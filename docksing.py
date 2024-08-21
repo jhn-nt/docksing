@@ -99,13 +99,13 @@ class DockSing:
     @classmethod
     def local(cls)->DockSing:
         return cls(ssh=None,docker=docker.from_env())
+    
 
     def setup(self,remotedir:str):
-        """Asserts whether `workdir` exists in remote host and otherwise creates it.
+        """Asserts whether `remotedir` exists in remote host and otherwise creates it.
 
         Args:
-            tag (str): Name of the target image tag. 
-            workdir (str): Absolute path of working directory on host.
+            remotedir (str): Absolute path of working directory on host.
         """
         if self.ssh:
             sftp=SFTPClient.from_transport(self.ssh.get_transport())
@@ -115,18 +115,18 @@ class DockSing:
 
 
     
-    def push(self,image:str,remotedir:str):
+    def push(self,tag:str,remotedir:str):
         """Pushes the target oci image `image` from the local docker daemon to the remote host as a `.tar` archive file in `remotedir`.
 
         Args:
             tag (str): Name of the target image tag.
-            workdir (str): Absolute path of working directory on host.
+            remotedir (str): Absolute path of working directory on host.
         """
         if self.ssh:
-            image_obj=self.docker.images.get(image)
-            iid=image_obj.id.split(":")[1]
+            image=self.docker.images.get(tag)
+            iid=image.id.split(":")[1]
             with io.BytesIO() as file:
-                for blob in image_obj.save():
+                for blob in image.save():
                     file.write(blob)
                 file.seek(0)
         
@@ -134,7 +134,7 @@ class DockSing:
                     scp.putfo(file,f"{remotedir}/{iid}.tar")
 
     
-    def build(self,image:str,remotedir:str):
+    def build(self,tag:str,remotedir:str):
         """Generates a `.sif` file from a docker image archive file.
 
         Args:
@@ -142,15 +142,15 @@ class DockSing:
             remotedir (str): Absolute path of working directory on host.
         """
         if self.ssh:
-            image_obj=self.docker.images.get(image)
-            iid=image_obj.id.split(":")[1]
+            image=self.docker.images.get(tag)
+            iid=image.id.split(":")[1]
             self.ssh.exec_command(f"cd {remotedir}; srun singularity build {iid}.sif docker-archive://{iid}.tar")
 
 
-    def submit(self,image:str,remotedir:str,container_config:List[str],slurm_config:List[str]):
+    def submit(self,tag:str,remotedir:str,container_config:List[str],slurm_config:List[str]):
         if self.ssh:
-            image_obj=self.docker.images.get(image)
-            iid=image_obj.id.split(":")[1]
+            image=self.docker.images.get(tag)
+            iid=image.id.split(":")[1]
 
             cmd=CLICompose.slurm_run_opt(slurm_config)+CLICompose.singularity_run_opt(container_config)+CLICompose.container_opt(container_config)
             cmd=" ".join(cmd)

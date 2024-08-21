@@ -1,13 +1,12 @@
 remotedir:  remote_directory
 
-
 slurm:
   nodes: 1
   cpus-per-task: 1
   job-name: docksing_test
 
 container:
-  image:  test
+  image:  experiment
   commands: ["hello",">","output.txt"]
   environment:
     - TEST: hello__world
@@ -15,4 +14,3 @@ container:
     - salerno: reggio_calabria
   ports:
     - 8080:8080
-

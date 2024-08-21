@@ -21,19 +21,30 @@ We then build the container image based on the above `Dockerfile` and we name it
 docker build -t experiment .
 ```
 We wish to run the experiment by passing it the arguments `["Hello!",">","docksing.txt"]`, so that running the container will produce as output a text file `docksing.txt`.   
-We know that experiment will not need an heavy resources, one cpu node with one core on the remote HPC will suffice. Additionally, we wish to create an environment variable that will be needed to run our experiment. To achieve this we create a `config.json` file as follows:
-```json
-{
-    "workdir":"a_docksing_example",
-    "slurm":{"nodes":1,"cpus-per-task":1,"job-name":"docksing_test"},
-    "docker":{"environment":{"TESTENV":"this is a test!"}},
-    "commands":["Hello!",">","docksing.txt"]
-}
+We know that experiment will not need an heavy resources, one cpu node with one core on the remote HPC will suffice. Additionally, we wish to create an environment variable that will be needed to run our experiment. To achieve this we create a `config.yaml` file as follows:
+```yaml
+    tmux:
+        session-name: dockising_test_session
+
+    slurm:
+        -   nodes:  1
+        -   cpus-per-task:  1
+        -   job-name:   docksing_test
+
+    container:
+        commands:   ["Hello!",">","docksing.txt"]
+        environment:
+            -   TESTENV:   this is a test!
+            -   ANOTHER_VARIABLE: set in the container environment
+        ports:
+            - 8080:8080
+    
+
 ```
-The `config.json` must have at _least_ four keys:
+The `config.yaml` must have at _least_ four keys:
 * `"workdir"`: The absolute path of target folder as string on the remote host, If it doesn't exists it will be created.  
 * `"slurm"`: A dictionary where each key is a slurm property with its respective value.
-* `"docker"`: A dictionary where each key is a `docker run` property with its respective value.
+* `container`: Parameritrazion mainly inspired by
 * `"commands"`: Optional auxilliary commands to serve as, possibly, entrypoint executions of the image. 
 
 

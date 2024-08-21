@@ -160,7 +160,7 @@ class DockSing:
             cmd=" ".join(cmd)
 
             with open(Path.cwd() / remotedir / "stdout.txt","w") as log:
-                subprocess.run(f"cd {Path.cwd() / remotedir}; {cmd}",shell=True,stdout=log)
+                subprocess.run(f"cd {Path.cwd() / remotedir}; {cmd}",shell=True,stdout=log,stderr=subprocess.STDOUT)
 
 
         

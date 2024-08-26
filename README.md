@@ -62,7 +62,7 @@ In essence `DockSing` automate four steps:
 1. Pushes the local devcontainer image from the local docker daemon to the remote hpc.  
 2. Converts the docker-based devcontainer image into a singularity instance on the remote hpc.  
 3. Starts slurm job based on the options defined in the configuartion file.  
-4. Passes to the singularity instanses all necessary infos required to run the code (such as enviornment variables, ports etc etc), as defined in the configuration file.  
+4. Passes to the singularity instances all the necessary information that is required to run the code (such as enviornment variables, ports etc etc), as defined in the configuration file.  
 
 ### Design Notes
 `DockSing` is developed with the aim of mainting the highest adherence to existing standards with the lowest code overhead possible, in order to retrospectively preserve interoperability with docker, singularity and SLURM documentations.  

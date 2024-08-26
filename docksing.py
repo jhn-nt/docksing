@@ -46,8 +46,10 @@ class CLICompose:
                 pass
             elif key=="commands":
                 pass
+            elif key=="working_dir":
+                cmd+=[f"--workdir {item}"]
             else:
-                raise ValueError("Only environment,volumes and ports mappings are supported.")
+                raise ValueError("Only environment, volumes, working_dir and ports mappings are supported.")
         return cmd
 
     @staticmethod
@@ -69,8 +71,10 @@ class CLICompose:
                 pass
             elif key=="commands":
                 pass
+            elif key=="working_dir":
+                cmd+=[f"--workdir {item}"]
             else:
-                raise ValueError("Only environment,volumes and ports mappings are supported.")
+                raise ValueError("Only environment, volumes, working_dir and ports mappings are supported.")
         return cmd
     
     @staticmethod

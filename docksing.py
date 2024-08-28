@@ -164,7 +164,11 @@ class DockSing:
             cmd=" ".join(cmd)
 
             with open(Path.cwd() / remotedir / "stdout.txt","w") as log:
-                subprocess.run(f"cd {Path.cwd() / remotedir}; {cmd}",shell=True,stdout=log,stderr=subprocess.STDOUT)
+                _=subprocess.Popen(f"cd {Path.cwd() / remotedir}; {cmd}",
+                                   stdout=log,
+                                   stderr=subprocess.STDOUT,
+                                   start_new_session=True)
+
         
         if debug:
             print(cmd)
@@ -175,7 +179,7 @@ class DockSing:
 
 if __name__=="__main__":
     from argparse import ArgumentParser
-    import yaml
+
 
     parser=ArgumentParser()
 

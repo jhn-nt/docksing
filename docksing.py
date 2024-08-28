@@ -151,7 +151,7 @@ class DockSing:
             self.ssh.exec_command(f"cd {remotedir}; srun singularity build {iid}.sif docker-archive://{iid}.tar")
 
 
-    def submit(self,tag:str,remotedir:str,container_config:List[str],slurm_config:List[str]):
+    def submit(self,tag:str,remotedir:str,container_config:List[str],slurm_config:List[str],debug:bool):
         if self.ssh:
             image=self.docker.images.get(tag)
             iid=image.id.split(":")[1]
@@ -165,6 +165,10 @@ class DockSing:
 
             with open(Path.cwd() / remotedir / "stdout.txt","w") as log:
                 subprocess.run(f"cd {Path.cwd() / remotedir}; {cmd}",shell=True,stdout=log,stderr=subprocess.STDOUT)
+        
+        if debug:
+            print(cmd)
+        
 
 
         
@@ -178,6 +182,8 @@ if __name__=="__main__":
     parser.add_argument("--ssh",action="store",required=True)
     parser.add_argument("--config",action="store",required=True)
     parser.add_argument("--local",action="store_true")
+    parser.add_argument("--debug",action="store_true")
+
 
 
     args,other=parser.parse_known_args()
@@ -185,6 +191,7 @@ if __name__=="__main__":
     SSH=args.ssh
     CONFIG=yaml.safe_load(open(args.config))
     LOCAL=args.local
+    DEBUG=args.debug
     
 
     if LOCAL:
@@ -195,7 +202,7 @@ if __name__=="__main__":
     client.setup(CONFIG["remotedir"])
     client.push(CONFIG["container"]["image"],CONFIG["remotedir"])
     client.build(CONFIG["container"]["image"],CONFIG["remotedir"])
-    client.submit(CONFIG["container"]["image"],CONFIG["remotedir"],CONFIG["container"],CONFIG["slurm"])
+    client.submit(CONFIG["container"]["image"],CONFIG["remotedir"],CONFIG["container"],CONFIG["slurm"],DEBUG)
         
     
 

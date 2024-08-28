@@ -28,7 +28,10 @@ class CLICompose:
         return cmd
 
     @staticmethod
-    def docker_run_opt(data:dict)->List[str]:
+    def docker_run_opt(data:dict,override:dict={},ignore:list=[])->List[str]:
+        data= data | override
+        data={key:item for (key,item) in data.items() if key not in ignore}
+
         cmd=["docker run"]
         for key, item in data.items():
             if key=="environment":
@@ -48,12 +51,17 @@ class CLICompose:
                 pass
             elif key=="working_dir":
                 cmd+=[f"--workdir {item}"]
+            elif key=="container_name":
+                cmd+=[f"--name {item}"]
             else:
-                raise ValueError("Only environment, volumes, working_dir and ports mappings are supported.")
+                raise ValueError(f"{key} not supported.")
         return cmd
 
     @staticmethod
-    def singularity_run_opt(data:dict)->List[str]:
+    def singularity_run_opt(data:dict,override:dict={},ignore:list=[])->List[str]:
+        data= data | override
+        data={key:item for (key,item) in data.items() if key not in ignore}
+
         cmd=["singularity run"]
         for key, item in data.items():
             if key=="environment":
@@ -74,7 +82,7 @@ class CLICompose:
             elif key=="working_dir":
                 cmd+=[f"--workdir {item}"]
             else:
-                raise ValueError("Only environment, volumes, working_dir and ports mappings are supported.")
+                raise ValueError(f"{key} not supported.")
         return cmd
     
     @staticmethod
@@ -126,16 +134,21 @@ class DockSing:
             tag (str): Name of the target image tag.
             remotedir (str): Absolute path of working directory on host.
         """
-        if self.ssh:
-            image=self.docker.images.get(tag)
-            iid=image.id.split(":")[1]
-            with io.BytesIO() as file:
-                for blob in image.save():
-                    file.write(blob)
-                file.seek(0)
         
+        image=self.docker.images.get(tag)
+        iid=image.short_id.split(":")[1]
+        with io.BytesIO() as file:
+            for blob in image.save():
+                file.write(blob)
+            file.seek(0)
+
+            if self.ssh:
                 with SCPClient(self.ssh.get_transport()) as scp:
                     scp.putfo(file,f"{remotedir}/{iid}.tar")
+            else:
+                with open(f"{remotedir}/{iid}.tar","wb") as f:
+                    f.write(file.getbuffer())
+    
 
     
     def build(self,tag:str,remotedir:str):
@@ -147,31 +160,48 @@ class DockSing:
         """
         if self.ssh:
             image=self.docker.images.get(tag)
-            iid=image.id.split(":")[1]
+            iid=image.short_id.split(":")[1]
             self.ssh.exec_command(f"cd {remotedir}; srun singularity build {iid}.sif docker-archive://{iid}.tar")
 
 
-    def submit(self,tag:str,remotedir:str,container_config:List[str],slurm_config:List[str],debug:bool):
+    def submit(self,tag:str,remotedir:str,container_config:List[str],slurm_config:List[str]):
         if self.ssh:
             image=self.docker.images.get(tag)
-            iid=image.id.split(":")[1]
+            iid=image.short_id.split(":")[1]
 
-            cmd=CLICompose.slurm_run_opt(slurm_config)+CLICompose.singularity_run_opt(container_config)+CLICompose.container_opt(container_config)
-            cmd=" ".join(cmd)
-            self.ssh.exec_command(f"cd {remotedir}; nohup {cmd} | tee stdout.txt &")
+            slurm_cmd=CLICompose.slurm_run_opt(slurm_config)
+            run_cmd=CLICompose.singularity_run_opt(container_config,
+                                                   override={"image":f"{iid}.sif"},
+                                                   ignore=["container_name"])
+            opt_cmd=CLICompose.container_opt(container_config)
+            cmd=" ".join(slurm_cmd+run_cmd+opt_cmd)
+            self.ssh.exec_command(f"cd {remotedir}; nohup {cmd} 2>&1 | tee stdout.txt &")
         else:
-            cmd=CLICompose.docker_run_opt(container_config)+CLICompose.container_opt(container_config)
-            cmd=" ".join(cmd)
+            run_cmd=CLICompose.docker_run_opt(container_config)
+            opt_cmd=CLICompose.container_opt(container_config)
+            cmd=" ".join(run_cmd+opt_cmd)
 
             with open(Path.cwd() / remotedir / "stdout.txt","w") as log:
-                _=subprocess.Popen(f"cd {Path.cwd() / remotedir}; {cmd}",
+                _=subprocess.Popen(cmd,
+                                   cwd=Path.cwd() / remotedir,
+                                   shell=True,
                                    stdout=log,
                                    stderr=subprocess.STDOUT,
                                    start_new_session=True)
+                
+
+    def cli(self,container_config:List[str],slurm_config:List[str]):
+        if self.ssh:
+            cmd=CLICompose.slurm_run_opt(slurm_config)+CLICompose.singularity_run_opt(container_config)+CLICompose.container_opt(container_config)
+            cmd=" ".join(cmd)
+        else:
+            cmd=CLICompose.docker_run_opt(container_config)+CLICompose.container_opt(container_config)
+            cmd=" ".join(cmd)
+        
+        return cmd
 
         
-        if debug:
-            print(cmd)
+
         
 
 
@@ -187,7 +217,7 @@ if __name__=="__main__":
     parser.add_argument("--ssh",action="store",required=True)
     parser.add_argument("--config",action="store",required=True)
     parser.add_argument("--local",action="store_true")
-    parser.add_argument("--debug",action="store_true")
+    parser.add_argument("--cli",action="store_true")
 
 
 
@@ -196,7 +226,7 @@ if __name__=="__main__":
     SSH=args.ssh
     CONFIG=yaml.safe_load(open(args.config))
     LOCAL=args.local
-    DEBUG=args.debug
+    CLI=args.cli
     
 
     if LOCAL:
@@ -204,10 +234,13 @@ if __name__=="__main__":
     else:
         client=DockSing.connect(SSH)
 
-    client.setup(CONFIG["remotedir"])
-    client.push(CONFIG["container"]["image"],CONFIG["remotedir"])
-    client.build(CONFIG["container"]["image"],CONFIG["remotedir"])
-    client.submit(CONFIG["container"]["image"],CONFIG["remotedir"],CONFIG["container"],CONFIG["slurm"],DEBUG)
+    if CLI:
+        print(client.cli(CONFIG["container"],CONFIG["slurm"]))
+    else:
+        client.setup(CONFIG["remotedir"])
+        client.push(CONFIG["container"]["image"],CONFIG["remotedir"])
+        client.build(CONFIG["container"]["image"],CONFIG["remotedir"])
+        client.submit(CONFIG["container"]["image"],CONFIG["remotedir"],CONFIG["container"],CONFIG["slurm"])
         
     
 

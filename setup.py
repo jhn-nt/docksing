@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="docksing",
-    version="0.2.10",
+    version="0.2.14",
     description="Lightweight Docker to Singularity to HPC Deployer",
     author="G. Angelotti",
     author_email="giovanni.angelotti@idsia.ch",

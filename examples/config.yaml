@@ -6,11 +6,12 @@ slurm:
   job-name: docksing_test
 
 container:
-  image:  experiment
-  commands: ["hello",">","output.txt"]
+  image:  alpine:latest
+  commands: ["sh -c","'echo $salerno > /output/output.txt'"]
   environment:
-    - TEST: hello__world
-    - GOOGLE_APPLICATION_CREDENTIALS: hello!
+    - TEST: hello
+    - GOOGLE_APPLICATION_CREDENTIALS: a_token
     - salerno: reggio_calabria
-  ports:
-    - 8080:8080
+  volumes:
+    - /home/gangelotti/projects/docksing/examples/remote_directory/output:/output
+

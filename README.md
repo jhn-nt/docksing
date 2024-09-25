@@ -1,5 +1,5 @@
 # DockSing
-## CLI Utility for deployment of containerized slurm jobs on HPC 
+## CLI Utility for deployment of containerized jobs on SLURM HPC 
 ### Requirements 
 * _Local_: [Docker](https://www.docker.com/products/docker-desktop/)
 * _Local_: `python>3.10`

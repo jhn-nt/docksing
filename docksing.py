@@ -10,9 +10,12 @@ from functools import partial
 import io
 import subprocess
 import os
+import sys
+from contextlib import redirect_stdout
 from pathlib import Path
 from typing import List
 import warnings
+import time
 
 
 @dataclass
@@ -97,7 +100,7 @@ class CLICompose:
             elif key=="commands":
                 pass
             elif key=="working_dir":
-                cmd+=[f"--workdir {item}"]
+                cmd+=[f"--pwd {item}"]
             else:
                 raise ValueError(f"{key} not supported.")
         return cmd
@@ -109,6 +112,10 @@ class CLICompose:
             cmd+=[f"--{key}={item}"]
         return cmd
             
+    @staticmethod
+    def singularity_build_opt(iid:str,remotedir:str)->List[str]:
+        cmd=["singularity build",f"{remotedir}/{iid}.sif",f"docker-archive://{remotedir}/{iid}.tar"]
+        return cmd
 
 @dataclass
 class DockSing:
@@ -117,6 +124,14 @@ class DockSing:
 
     @classmethod
     def connect(cls,ssh:str)->DockSing:
+        """Instantiate a `Docksing` object by establishing a connection to the remote host via an `ssh` connection string and local docker daemon.
+
+        Args:
+            ssh (str): Connetion string in the form `username@hostname`
+
+        Returns:
+            DockSing: An instance of `DockSing` capable of communicating with the remote host and the local docker daemon.
+        """
         username,hostname=ssh.split("@")
 
         ssh_client=SSHClient()
@@ -127,13 +142,20 @@ class DockSing:
     
     @classmethod
     def local(cls)->DockSing:
+        """Instantiate a `Docksing` object by establishing a connection to the local docker daemon.
+
+        Returns:
+            DockSing: An instance of `DockSing` capable of communicating with the local docker daemon.
+        """
         return cls(ssh=None,docker=docker.from_env())
     
     def setup(self,remotedir:str):
-        """Asserts whether `remotedir` exists in remote host and otherwise creates it.
+        """Asserts whether the folder `remotedir` exists in the remote host (or in the current working directory if in local mode), if it does not, it creates it.
+        By design, `Docsking.setup` will raise an error if `remotedir` already exists.
+        This behavior is intended to prevent accidental overwriting of valuable data. 
 
         Args:
-            remotedir (str): Absolute path of working directory on host.
+            remotedir (str): Absolute path of working directory on the remote host.
         """
         if self.ssh:
             sftp=SFTPClient.from_transport(self.ssh.get_transport())
@@ -142,10 +164,14 @@ class DockSing:
             else:
                 sftp.mkdir(remotedir)
         else:
-            _=os.mkdir(Path.cwd() / remotedir)
+            if Path(remotedir).is_dir():
+                raise ValueError(f"remotedir:{remotedir} already exists in the local hor host, consider changing the remotedir.")
+            else:
+                _=os.mkdir(Path.cwd() / remotedir)
 
     def push(self,tag:str,remotedir:str):
-        """Pushes the target oci image `image` from the local docker daemon to the remote host as a `.tar` archive file in `remotedir`.
+        """Pushes the target oci image `tag` from the local docker daemon to the remote host as a `.tar` archive file in `remotedir`.
+        
 
         Args:
             tag (str): Name of the target image tag.
@@ -166,37 +192,50 @@ class DockSing:
                 with open(f"{remotedir}/{iid}.tar","wb") as f:
                     f.write(file.getbuffer())
     
-    def remote_volume(self,remote_dir:str,local_dir:str,container_dir:str,send_payload:bool=False)->str:
-        """If a volume mount of the form `local_dir:container_dir` is requested then `docksing` sends the content of `local_dir` via
-        scp to `remote_dir/local_dir` and submits to singularity the mapping `remote_dir/local_dir:conatainer_dir`.
+    def map_remote_volume(self,remote_dir:str,local_dir:str,container_dir:str,send_payload:bool=False)->str:
+        """Given a volume mapping in the form of `local_dir:container_dir` and a target `remote_dir`,
+        `Docksing.map_remote_volume` first copies over SSH SCP the content of `local_dir` into `remote_dir/local_dir`
+        then updates the volume mapping to be run remotely accordingly as `remote_dir/local_dir:container_dir`.
 
         Args:
-            remote_dir (str): Remote direcorty as indicited in `remote_dir`
+            remote_dir (str): Remote direcorty as indicated in `remote_dir`
             local_dir (str): The local directory of the volume mapping.
             container_dir (str): The container direcotry of the volume mapping.
 
         Returns:
-            str: The updated singularity mapping.
+            str: The updated singularity volume mapping in the form `remote_dir/local_dir:container_dir`.
         """
-        if send_payload and Path(local_dir).is_dir():
-            with SCPClient(self.ssh.get_transport()) as scp:
-                scp.put(
-                    local_dir,
-                    remote_path=remote_dir,
-                    recursive=True)
-                
-        
         if local_dir==remote_dir:
-            # Preserving docker behavior in singularity
-            warnings.warn("It is advisable to map subdirectories of remotedir, not remotedir directly")
+            # If the mapping points to the remote dir, then remote_dir is already a valid target path
+            warnings.warn(f"It is advisable to map subdirectories of remotedir, not remotedir directly,Found:{remote_dir}")
             remote_map=remote_dir
         else:
+            # Otherwise, we need to prepend the remot_dir path to the local_dir leaf to properly build the remote target path
             remote_map=f"{remote_dir}/{Path(local_dir).name}"
-            # Singularity does not automatically create source binds if they do not exists
-            if send_payload:
-                # this should be done in the setup
+
+        if self.ssh:
+            if send_payload and Path(local_dir).is_dir():
+                # If the mapping points to an existing local folder,
+                # we copy its content in remote_dir/local_host
+                with SCPClient(self.ssh.get_transport()) as scp:
+                    scp.put(
+                        local_dir,
+                        remote_path=remote_dir,
+                        recursive=True)
+                
+        
+            if local_dir!=remote_dir:
+                # If local_dir, the source bind, does not exists locally, there is no data to be copied over SSH SCP.
+                # In docker, the source bind would then be generated by default.
+                # In singularity, however, an error is raised if the source bind does not exist.
+                # To maintain the highest alignment to docker behavior, we then assert the existence of source bind, 
+                # and if it does not exists, we generate the folder before sending running singularity in order to circumvent the error.
                 sftp=SFTPClient.from_transport(self.ssh.get_transport())
-                sftp.mkdir(remote_map)
+                if send_payload and Path(local_dir).name not in sftp.listdir(path=remote_dir):
+                    # Checking if remote_dir/local_dir already exists in remote and creates it if it does not.
+                    # TODO: this functionality should be moved to setup
+                    sftp.mkdir(remote_map)
+
 
 
         return f"{remote_map}:{container_dir}"
@@ -216,35 +255,35 @@ class DockSing:
 
         if "volumes" in container_config:
             remote_volumes=[]
-            pbar=tqdm(container_config["volumes"],total=len(container_config["volumes"]))
+            pbar=tqdm(container_config["volumes"],total=len(container_config["volumes"]),disable=send_payload)
             for volume in pbar:
                 local_dir,container_dir=volume.split(":")
-                remote_volumes.append(self.remote_volume(remote_dir,local_dir,container_dir,send_payload=send_payload))
+                remote_volumes.append(self.map_remote_volume(remote_dir,local_dir,container_dir,send_payload=send_payload))
             return {"volumes":remote_volumes}
         else:
             return {}
 
-    def build(self,tag:str,remotedir:str):
-        """Generates a `.sif` file from a docker image archive file.
-        TODO: build command should be prepended in the submit command to avoid job duplications and should be part of the cli builder
+    def submit(self,tag:str,remotedir:str,container_config:List[str],slurm_config:List[str],attach:bool=False):
+        """Submits the containerized job as defined in `config.yaml` to the remote host.
+        `Docksing.submit` is the core of `Docksing`, as it is responsible of parsing the `config.yaml` file thorugh the `CLICompose` utility, copyng evantual data from local to remote,
+        and then intiiate jobs, either remotely or locally.
+        If `Docksing` is instantiated via `Docksing.connect`, thus is able of directly connecting to remote host, it then starts a slurm job remotely.
+        If `Docksing` is instantiated via `Docksing.local`, thus is not able of directly connecting to remote host, it then starts a local container to run the job.
 
         Args:
-            image (str): Name of the target image tag.
-            remotedir (str): Absolute path of working directory on host.
+            tag (str): Name of the target image tag.
+            remotedir (str): Absolute path of working directory on the remote host.
+            container_config (List[str]): A dictionary built from the `container` chapter in the `config.yaml`
+            slurm_config (List[str]): A dictionary built from the `slurm` chapter in the `config.yaml`
+            attach (bool, optional): If set to True makes `Docksing.submit` a blocking function.
         """
-        if self.ssh:
-            image=self.docker.images.get(tag)
-            iid=image.short_id.split(":")[1]
-            return [f"singularity build {remotedir}/{iid}.sif docker-archive://{remotedir}/{iid}.tar"]
-
-    def submit(self,tag:str,remotedir:str,container_config:List[str],slurm_config:List[str],attach:bool=False):
         if self.ssh:
             image=self.docker.images.get(tag)
             iid=image.short_id.split(":")[1]
 
             
             slurm_cmd=CLICompose.slurm_run_opt(slurm_config)
-            build_cmd=self.build(tag,remotedir)
+            build_cmd=CLICompose.singularity_build_opt(iid,remotedir)
             run_cmd=CLICompose.singularity_run_opt(container_config,
                                                    override={"image":f"{remotedir}/{iid}.sif",**self.override_volumes(remotedir,container_config,send_payload=True)},
                                                    ignore=["container_name"])
@@ -254,9 +293,11 @@ class DockSing:
             cmd=" ".join(slurm_cmd)+f" bash -c \"{inner_cmd}\""
 
             if attach:
+                # if requested, stream ssh output to local console
                 self.ssh.exec_command(f"{cmd}")
             else:
-                self.ssh.exec_command(f"nohup {cmd} 2>&1 | tee {remotedir}/stdout.txt &")
+                # otherwise stream output to remote stdout.txt
+                self.ssh.exec_command(f"nohup {cmd} > {remotedir}/stdout.txt 2>&1 &")
         else:
             run_cmd=CLICompose.docker_run_opt(container_config)
             opt_cmd=CLICompose.container_opt(container_config)
@@ -270,14 +311,26 @@ class DockSing:
                                    stderr=subprocess.STDOUT,
                                    start_new_session=True)
                 
-    def cli(self,remotedir:str,tag:str,container_config:List[str],slurm_config:List[str]):
-        if self.ssh:
-            build_cmd=[self.build(tag,remotedir)]
+    def cli(self,remotedir:str,tag:str,container_config:List[str],slurm_config:List[str],local:bool)->str:
+        """Non-functional twin method of `Docksing.submit` which only prints out the CLI string of the job submiossion command without executing it.
+        It can be useful for debugging purposes.
+
+        Args:
+            tag (str): Name of the target image tag.
+            remotedir (str): Absolute path of working directory on the remote host.
+            container_config (List[str]): A dictionary built from the `container` chapter in the `config.yaml`
+            slurm_config (List[str]): A dictionary built from the `slurm` chapter in the `config.yaml`
+            local (bool): Flag indicating if the job was requested locally or remotely.
+
+        Returns:
+            str: CLI command.
+        """
+        if not local:
             image=self.docker.images.get(tag)
             iid=image.short_id.split(":")[1]
 
             slurm_cmd=CLICompose.slurm_run_opt(slurm_config)
-            build_cmd=self.build(tag,remotedir)
+            build_cmd=CLICompose.singularity_build_opt(iid,remotedir)
             run_cmd=CLICompose.singularity_run_opt(container_config,
                                                    override={"image":f"{remotedir}/{iid}.sif",**self.override_volumes(remotedir,container_config,send_payload=False)},
                                                    ignore=["container_name"])
@@ -291,8 +344,26 @@ class DockSing:
         
         return cmd
     
-    def stdout_from_config(self,remotedir:str):
-        pass
+    def stream_stdout_from_config(self,remotedir:str):
+        """Redirects the remote `stdout` and `stderr` to the local console.
+
+        Args:
+            remotedir (str): Absolute path of working directory on the remote host.
+        """
+        stdin, stdout, stderr=self.ssh.exec_command(f"tail -f {remotedir}/stdout.txt")
+        stdout.channel.set_combine_stderr(True)
+        
+        while True:
+            if stdout.channel.recv_ready():
+                print(stdout.readline())
+            time.sleep(.1)
+
+
+
+
+
+        
+
 
         
 
@@ -313,6 +384,8 @@ if __name__=="__main__":
     parser.add_argument("--local",action="store_true")
     parser.add_argument("--cli",action="store_true")
     parser.add_argument("--attach",action="store_true")
+    parser.add_argument("--stream",action="store_true")
+    parser.add_argument("--kill",action="store_true") #TODO
 
 
 
@@ -323,15 +396,20 @@ if __name__=="__main__":
     LOCAL=args.local
     CLI=args.cli
     ATTACH=args.attach
+    STREAM=args.stream
     
 
     if LOCAL:
+        client=DockSing.local()
+    elif CLI:
         client=DockSing.local()
     else:
         client=DockSing.connect(SSH)
 
     if CLI:
-        print(client.cli(CONFIG["remotedir"],CONFIG["container"]["image"],CONFIG["container"],CONFIG["slurm"]))
+        print(client.cli(CONFIG["remotedir"],CONFIG["container"]["image"],CONFIG["container"],CONFIG["slurm"],LOCAL))
+    elif STREAM:
+        client.stream_stdout_from_config(CONFIG["remotedir"])
     else:
         client.setup(CONFIG["remotedir"])
         client.push(CONFIG["container"]["image"],CONFIG["remotedir"])

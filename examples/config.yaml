@@ -1,17 +1,17 @@
-remotedir:  remote_directory
+remotedir:  target_directory_on_remote_host
 
 slurm:
   nodes: 1
   cpus-per-task: 1
-  job-name: docksing_test
+  job-name: name_of_the_slurm_job
 
 container:
   image:  alpine:latest
-  commands: ["sh -c","'echo $salerno > /output/output.txt'"]
+  commands: ["sh -c","'echo the $VARIABLE is $VALUE   > /output/result.txt'"]
   environment:
-    - TEST: hello
-    - GOOGLE_APPLICATION_CREDENTIALS: a_token
-    - salerno: reggio_calabria
+    - VARIABLE: color
+    - GOOGLE_APPLICATION_CREDENTIALS: credentials
+    - VALUE: red
   volumes:
-    - /home/gangelotti/projects/docksing/examples/remote_directory/output:/output
+    - /absolute/path/to/output:/output
 

@@ -8,7 +8,7 @@
 ### Installation
 On your _local_ host run:
 ```bash
-pip install git+https://gitlab-core.supsi.ch/dti-idsia/giovanni.angelotti/docksing.git
+pip install docksing
 ```
 ### What is _Docksing_?
 _DockSing_ is a pure-python lightweight CLI tool to orchestrate deployment of jobs to docker and slurm end points based on the [compose specification](https://compose-spec.io/) and loosely inspired by [Google Vertex AI](https://cloud.google.com/vertex-ai/docs).

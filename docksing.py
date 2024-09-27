@@ -133,7 +133,7 @@ class DockSing:
         Returns:
             DockSing: An instance of `DockSing` capable of communicating with the remote host and the local docker daemon.
         """
-        username,hostname=ssh.split("@")
+        username,hostname=ssh.rsplit("@",1)
 
         ssh_client=SSHClient()
         ssh_client.set_missing_host_key_policy(AutoAddPolicy())

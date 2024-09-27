@@ -15,12 +15,12 @@ _DockSing_ is a pure-python lightweight CLI tool to orchestrate deployment of jo
 
 Deploying a job on a local docker:
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --local
+docksing --ssh username@hostname --config config.yaml --local
 ```
 
 Deploying a job on a remote Slurm HPC:
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml 
+docksing --ssh username@hostname --config config.yaml 
 ```
 ### Why _DockSing_?
 _DockSing_ exists to reduce the overhead effort required to scale from development to testing to deployment of experiments.
@@ -57,7 +57,7 @@ This `config.yaml`, however, slightly differs from a typical `docker-compose` fi
 
 To launch the job then run:
 ```bash
-python3 -m docksing --ssh username@hostname --config path/to/config.yaml 
+docksing --ssh username@hostname --config path/to/config.yaml 
 ```
 Essentially the above commands automate the follwoing actions, in order:
 1.  Attempts to establish a connection through SSH to the remote host
@@ -101,7 +101,7 @@ docker pull alpine:latest
 DockSing will raise an error if it cannot find the image in the local docker daemon.  
 Afterwords we should assert whether our setup is correct, through:
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --cli --local
+docksing --ssh username@hostname --config config.yaml --cli --local
 ```
 Which returns:
 ```bash
@@ -109,11 +109,11 @@ docker run --env VARIABLE=color --env GOOGLE_APPLICATION_CREDENTIALS=credentials
 ```
 If it does look right, we may proced to run a _local run_ to assess whether our logic is correct:
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --local
+docksing --ssh username@hostname --config config.yaml --local
 ```
 If it is, we likewise check whether our setup is correct in the remote case:
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --cli 
+docksing --ssh username@hostname --config config.yaml --cli 
 ```
 Which, again, returns:
 ```bash
@@ -122,37 +122,37 @@ srun --nodes=1 --cpus-per-task=1 --job-name=name_of_the_slurm_job bash -c "singu
 Note how a simple docker run quickly explodes in complexity and verbosity when we need to deploy it remotely via SLURM on singularity, which may be prone to errors.  
 If the command looks right, we may actually submit the job on the HPC via:
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml 
+docksing --ssh username@hostname --config config.yaml 
 ```
 Which lauches the job.  
 Often, however, one may which to monitor the logs to assess how the job is going.
 To do so, one can simply run:
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --stream 
+docksing --ssh username@hostname --config config.yaml --stream 
 ```
-Which streams the remote `stdout` and `stderr` to the current console:
+Which streams the remote `stdout` and `stderr` to the current console.
 
 
 ### List of Features
 1. Launching a local job on docker
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --local 
+docksing --ssh username@hostname --config config.yaml --local 
 ```
 2. Launching a remote job
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --cli
+docksing --ssh username@hostname --config config.yaml --cli
 ```
 3. Inspecting local cli
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --local --cli
+docksing --ssh username@hostname --config config.yaml --local --cli
 ```
 4. Inspecting remote cli
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --cli
+docksing --ssh username@hostname --config config.yaml --cli
 ```
 5. Stream the remote job logs to a local console
 ```bash
-python3 -m docksing --ssh username@hostname --config config.yaml --stream
+docksing --ssh username@hostname --config config.yaml --stream
 ```
 
 ### Supported Compose Specification
@@ -164,4 +164,7 @@ python3 -m docksing --ssh username@hostname --config config.yaml --stream
 ### Design Notes
 DockSing is developed with the aim of mainting the highest adherence to existing standards with the lowest code overhead possible, in order to retrospectively preserve interoperability with docker, singularity and SLURM documentations.  
 To squeeze the most out of DockSing it is advisable to have good proficiency with the docker ecosystem.
+
+### Limitations
+Docksing was tested on a Linux environment, milage may very on other systems.
 

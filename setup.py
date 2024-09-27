@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="docksing",
-    version="0.2.22",
+    version="0.2.23",
     description="CLI Utility for deployment of containerized jobs on SLURM HPC ",
     author="G. Angelotti",
     author_email="giovanni.angelotti@idsia.ch",
@@ -12,6 +12,6 @@ setup(
         "scp==0.15.0",
         "docker==7.1.0",
         "tqdm==4.66.4"
-    ]
-    
+    ],
+    entry_points={"console_scripts":["docksing=docksing:main"]}
 )

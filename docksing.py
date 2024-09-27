@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List
 import warnings
 import time
+import cmd
 
 
 @dataclass
@@ -360,19 +361,7 @@ class DockSing:
 
 
 
-
-
-        
-
-
-        
-
-        
-
-
-        
-
-if __name__=="__main__":
+def main():
     from argparse import ArgumentParser
     import yaml
 
@@ -414,6 +403,12 @@ if __name__=="__main__":
         client.setup(CONFIG["remotedir"])
         client.push(CONFIG["container"]["image"],CONFIG["remotedir"])
         client.submit(CONFIG["container"]["image"],CONFIG["remotedir"],CONFIG["container"],CONFIG["slurm"],attach=ATTACH)
+
+    
+
+if __name__=="__main__":
+    main()
+
         
     
 

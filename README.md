@@ -1,9 +1,5 @@
 # DockSing
 ## CLI Utility for deployment of containerized jobs on SLURM HPCs 
-### Requirements 
-* _Local_: [Docker](https://www.docker.com/products/docker-desktop/)
-* _Local_: `python>3.10`
-* _Remote_: [Singularity](https://docs.sylabs.io/guides/2.6/user-guide/index.html)
 
 ### Installation
 On your _local_ host run:
@@ -37,7 +33,7 @@ This `config.yaml`, however, slightly differs from a typical `docker-compose` fi
 2. `slurm`: Chapter of `key:value` maps encoding `srun` options ([reference](https://slurm.schedmd.com/srun.html)).
 3. `container`: Chapter containing all entries one would use in a normal `docker-compose` file. Note that Docksing only supports some limited docker-compose functionalities, please refer to the supported compose specification section below.
 
-
+Example of a `config.yaml`:
 ```yml
   remotedir:  path/to/remote/direcotry
   slurm:
@@ -74,7 +70,8 @@ A side note, steps 7 and 8 and executed within the same `srun` instance to minim
 
 
 ### Tutorial
-Assume we have the following `config.yaml`:
+In this use case we wish to print the content of some environment variables in a `.txt` file.   
+This can be achieved with the following `config.yaml`:
 ```yml
 remotedir:  target_directory_on_remote_host
 
@@ -94,41 +91,36 @@ container:
     - /absolute/path/to/output:/output
 
 ```
-First and foremost, we pull the image (or build the dockerfile) required to run the job:
+First and foremost, we pull the image (or build a dockerfile) required to run the job:
 ```bash
-docker pull alpine:latest
+$ docker pull alpine:latest
 ```
-DockSing will raise an error if it cannot find the image in the local docker daemon.  
-Afterwords we should assert whether our setup is correct, through:
+_DockSing will raise an error if it cannot find the image in the local docker daemon_.  
+Afterwords, we may wish to assert whether our setup is correct by inspecting the explicit cli, through:
 ```bash
-docksing --ssh username@hostname --config config.yaml --cli --local
-```
-Which returns:
-```bash
+$ docksing --ssh username@hostname --config config.yaml --cli --local  
 docker run --env VARIABLE=color --env GOOGLE_APPLICATION_CREDENTIALS=credentials --env VALUE=red --volume /absolute/path/to/output:/output alpine:latest sh -c 'echo the $VARIABLE is $VALUE   > /output/result.txt'
 ```
+
 If it does look right, we may proced to run a _local run_ to assess whether our logic is correct:
 ```bash
-docksing --ssh username@hostname --config config.yaml --local
+$ docksing --ssh username@hostname --config config.yaml --local
 ```
 If it is, we likewise check whether our setup is correct in the remote case:
 ```bash
-docksing --ssh username@hostname --config config.yaml --cli 
-```
-Which, again, returns:
-```bash
+$ docksing --ssh username@hostname --config config.yaml --cli 
 srun --nodes=1 --cpus-per-task=1 --job-name=name_of_the_slurm_job bash -c "singularity build target_directory_on_remote_host/91ef0af61f39.sif docker-archive://target_directory_on_remote_host/91ef0af61f39.tar && singularity run --env VARIABLE=color --env GOOGLE_APPLICATION_CREDENTIALS=credentials --env VALUE=red --bind target_directory_on_remote_host/output:/output target_directory_on_remote_host/91ef0af61f39.sif sh -c 'echo the $VARIABLE is $VALUE   > /output/result.txt'"
 ```
 Note how a simple docker run quickly explodes in complexity and verbosity when we need to deploy it remotely via SLURM on singularity, which may be prone to errors.  
 If the command looks right, we may actually submit the job on the HPC via:
 ```bash
-docksing --ssh username@hostname --config config.yaml 
+$ docksing --ssh username@hostname --config config.yaml 
 ```
 Which lauches the job.  
 Often, however, one may which to monitor the logs to assess how the job is going.
 To do so, one can simply run:
 ```bash
-docksing --ssh username@hostname --config config.yaml --stream 
+$ docksing --ssh username@hostname --config config.yaml --stream 
 ```
 Which streams the remote `stdout` and `stderr` to the current console.
 
@@ -162,9 +154,13 @@ docksing --ssh username@hostname --config config.yaml --stream
 - commands
 
 ### Design Notes
-DockSing is developed with the aim of mainting the highest adherence to existing standards with the lowest code overhead possible, in order to retrospectively preserve interoperability with docker, singularity and SLURM documentations.  
+DockSing is developed with the aim of maintaining the highest adherence to existing standards with the lowest code overhead possible, in order to retrospectively preserve interoperability with docker, singularity and SLURM documentations.  
 To squeeze the most out of DockSing it is advisable to have good proficiency with the docker ecosystem.
 
 ### Limitations
-Docksing was tested on a Linux environment, milage may very on other systems.
+Docksing was tested on a Windows Linux Subsytem, milage may very on other settings.
 
+### Requirements 
+* _Local_: [Docker](https://www.docker.com/products/docker-desktop/)
+* _Local_: `python>3.10`
+* _Remote_: [Singularity](https://docs.sylabs.io/guides/2.6/user-guide/index.html)

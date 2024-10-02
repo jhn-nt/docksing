@@ -1,7 +1,14 @@
 # DockSing
 ## CLI Utility for deployment of containerized jobs on SLURM HPCs 
+![python](https://img.shields.io/badge/python->=3.10-blue)
+![pypi](https://img.shields.io/badge/pypi-0.2.25-blue)
 
 ### Installation
+_Requirements_: 
+* _Local_: [Docker](https://www.docker.com/products/docker-desktop/)
+* _Local_: `python>=3.10`
+* _Remote_: [Singularity](https://docs.sylabs.io/guides/2.6/user-guide/index.html)
+
 On your _local_ host run:
 ```bash
 pip install docksing
@@ -148,10 +155,10 @@ docksing --ssh username@hostname --config config.yaml --stream
 ```
 
 ### Supported Compose Specification
-- workdir
-- environment
-- volumes
-- commands
+- `workdir`
+- `environment`
+- `volumes`
+- `commands`
 
 ### Design Notes
 DockSing is developed with the aim of maintaining the highest adherence to existing standards with the lowest code overhead possible, in order to retrospectively preserve interoperability with docker, singularity and SLURM documentations.  
@@ -160,7 +167,4 @@ To squeeze the most out of DockSing it is advisable to have good proficiency wit
 ### Limitations
 Docksing was tested on a Windows Linux Subsytem, milage may very on other settings.
 
-### Requirements 
-* _Local_: [Docker](https://www.docker.com/products/docker-desktop/)
-* _Local_: `python>3.10`
-* _Remote_: [Singularity](https://docs.sylabs.io/guides/2.6/user-guide/index.html)
+

@@ -1,7 +1,7 @@
 # DockSing
 ## CLI Utility for deployment of containerized jobs on SLURM HPCs 
 ![python](https://img.shields.io/badge/python->=3.10-blue)
-![pypi](https://img.shields.io/badge/pypi-0.2.31-blue)
+![pypi](https://img.shields.io/badge/pypi-0.2.32-blue)
 
 ### Installation
 _Requirements_: 

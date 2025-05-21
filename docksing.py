@@ -32,10 +32,6 @@ class CLICompose:
         if "commands" in data.keys():
             assert isinstance(data["commands"],list)
             cmd+=[" ".join(data["commands"])]
-
-        if "entrypoint" in data.keys():
-            assert isinstance(data["entrypoint"],list)
-            cmd+=["--entrypoint"+" ".join(data["entrypoint"])]
         return cmd
 
     @staticmethod
@@ -72,7 +68,7 @@ class CLICompose:
             elif key=="container_name":
                 cmd+=[f"--name {item}"]
             elif key=="entrypoint":
-                pass
+                cmd+=["--entrypoint"+" ".join(data["entrypoint"])]
             else:
                 raise ValueError(f"{key} not supported.")
         return cmd
@@ -108,7 +104,7 @@ class CLICompose:
             elif key=="commands":
                 pass
             elif key=="entrypoint":
-                pass
+                cmd+=["--entrypoint"+" ".join(data["entrypoint"])]
             elif key=="working_dir":
                 cmd+=[f"--pwd {item}"]
             else:

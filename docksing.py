@@ -66,6 +66,8 @@ class CLICompose:
                 cmd+=[f"--workdir {item}"]
             elif key=="container_name":
                 cmd+=[f"--name {item}"]
+            elif key=="entrypoint":
+                pass
             else:
                 raise ValueError(f"{key} not supported.")
         return cmd
@@ -99,6 +101,8 @@ class CLICompose:
             elif key=="image":
                 pass
             elif key=="commands":
+                pass
+            elif key=="entrypoint":
                 pass
             elif key=="working_dir":
                 cmd+=[f"--pwd {item}"]

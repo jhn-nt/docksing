@@ -159,6 +159,7 @@ docksing --ssh username@hostname --config config.yaml --stream
 - `environment`
 - `volumes`
 - `commands`
+- `entrypoint`
 
 ### Design Notes
 DockSing is developed with the aim of maintaining the highest adherence to existing standards with the lowest code overhead possible, in order to retrospectively preserve interoperability with docker, singularity and SLURM documentations.  

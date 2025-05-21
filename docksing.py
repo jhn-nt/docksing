@@ -28,9 +28,14 @@ class CLICompose:
         assert set(REQUIRED).issubset(data.keys()), f"Missing mandatory bindings: {set(REQUIRED).difference(data.keys())}"
 
         cmd=[data["image"]]
+
         if "commands" in data.keys():
             assert isinstance(data["commands"],list)
             cmd+=[" ".join(data["commands"])]
+            
+        if "entrypoint" in data.keys():
+            assert isinstance(data["entrypoint"],list)
+            cmd+=[" ".join(data["entrypoint"])]
         return cmd
 
     @staticmethod

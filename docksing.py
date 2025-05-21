@@ -148,13 +148,16 @@ class DockSing:
         return cls(ssh=ssh_client,docker=docker.from_env(timeout=docker_timeout))
     
     @classmethod
-    def local(cls)->DockSing:
+    def local(cls,docker_timeout:int=60)->DockSing:
         """Instantiate a `Docksing` object by establishing a connection to the local docker daemon.
+
+        Args:
+        docker_timeout(int): Maximum seconds required to save an image. Larger images may require larger timeout values.
 
         Returns:
             DockSing: An instance of `DockSing` capable of communicating with the local docker daemon.
         """
-        return cls(ssh=None,docker=docker.from_env())
+        return cls(ssh=None,docker=docker.from_env(timeout=docker_timeout))
     
     def setup(self,remotedir:str):
         """Asserts whether the folder `remotedir` exists in the remote host (or in the current working directory if in local mode), if it does not, it creates it.
@@ -397,9 +400,9 @@ def main():
     
 
     if LOCAL:
-        client=DockSing.local()
+        client=DockSing.local(docker_timeout=TIMEOUT)
     elif CLI:
-        client=DockSing.local()
+        client=DockSing.local(docker_timeout=TIMEOUT)
     else:
         client=DockSing.connect(SSH,docker_timeout=TIMEOUT)
 

@@ -23,11 +23,16 @@ import cmd
 class CLICompose:
 
     @staticmethod
-    def container_opt(data:dict)->List[str]:
+    def container_opt(data:dict,target:str)->List[str]:
         REQUIRED=["image"]
         assert set(REQUIRED).issubset(data.keys()), f"Missing mandatory bindings: {set(REQUIRED).difference(data.keys())}"
+        assert target in ["singularity","docker"]
 
         cmd=[data["image"]]
+
+        if target=='singularity' and "entrypoint" in data:
+            assert isinstance(data["entrypoint"],str)
+            cmd+=[data["entrypoint"]]
 
         if "commands" in data.keys():
             assert isinstance(data["commands"],list)
@@ -102,8 +107,9 @@ class CLICompose:
             elif key=="image":
                 pass
             elif key=="commands":
-                if "entrypoint" in data:
-                    data["commands"]=[data["entrypoint"],*data["commands"]]
+                pass
+            elif key=="entrypoint":
+                pass
             elif key=="working_dir":
                 cmd+=[f"--pwd {item}"]
             else:
@@ -296,7 +302,7 @@ class DockSing:
             run_cmd=CLICompose.singularity_run_opt(container_config,
                                                    override={"image":f"{remotedir}/{iid}.sif",**self.override_volumes(remotedir,container_config,send_payload=True)},
                                                    ignore=["container_name"])
-            opt_cmd=CLICompose.container_opt(container_config)
+            opt_cmd=CLICompose.container_opt(container_config,"singularity")
 
             inner_cmd=" ".join(build_cmd+["&&"]+run_cmd+opt_cmd)
             cmd=" ".join(slurm_cmd)+f" bash -c \"{inner_cmd}\""
@@ -309,7 +315,7 @@ class DockSing:
                 self.ssh.exec_command(f"nohup {cmd} > {remotedir}/stdout.txt 2>&1 &")
         else:
             run_cmd=CLICompose.docker_run_opt(container_config)
-            opt_cmd=CLICompose.container_opt(container_config)
+            opt_cmd=CLICompose.container_opt(container_config,"docker")
             cmd=" ".join(run_cmd+opt_cmd)
 
             with open(Path.cwd() / remotedir / "stdout.txt","w") as log:

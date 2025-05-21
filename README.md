@@ -1,7 +1,7 @@
 # DockSing
 ## CLI Utility for deployment of containerized jobs on SLURM HPCs 
 ![python](https://img.shields.io/badge/python->=3.10-blue)
-![pypi](https://img.shields.io/badge/pypi-0.2.32-blue)
+![pypi](https://img.shields.io/badge/pypi-0.2.35-blue)
 
 ### Installation
 _Requirements_: 
@@ -168,4 +168,13 @@ To squeeze the most out of DockSing it is advisable to have good proficiency wit
 ### Limitations
 Docksing was tested on a Windows Linux Subsytem, milage may very on other settings.
 
+### Known Issues
+Depending on the image size and the performance of the machine hosting the local docker daemon,for larger images (>5GB) you may receive a timeout error: 
+```python
+requests.exceptions.ReadTimeout: UnixHTTPConnectionPool(host='localhost', port=None): Read timed out. (read timeout=60)
+```
+This can be avoided by increasing the default timeout from 60 seconds to an higher value, 600 fror example, using the `timeout` argument:
+```bash
+$ docksing --ssh username@hostname --config config.yaml --timeout 600
+```
 

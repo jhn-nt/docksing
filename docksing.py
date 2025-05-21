@@ -31,6 +31,7 @@ class CLICompose:
         cmd=[data["image"]]
 
         if target=='singularity' and "entrypoint" in data:
+            # In singularity the concept of entrypoint does not exists, and its all executed 
             assert isinstance(data["entrypoint"],str)
             cmd+=[data["entrypoint"]]
 
@@ -87,10 +88,19 @@ class CLICompose:
             else:
                 raise ValueError(f"{key} not found in data.")
 
+        if "entrypoint" in data:
+            # The concept of entrypoint does not exist in singularity
+            # Docker entrypoint commands of the form:
+            # $ docker run .... --entrypoint <command> <image> arg arg
+            # Need to be converted in:
+            # $ singularity exec ... <image> <command> arg arg
+            cmd=["singularity exec"]
+        else:
+            cmd=["singularity run"]
+
         # ignoring key bindings
         data={key:item for (key,item) in data.items() if key not in ignore}
 
-        cmd=["singularity run"]
         for key, item in data.items():
             if key=="environment":
                 if isinstance(item,list):

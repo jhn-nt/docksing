@@ -68,8 +68,7 @@ class CLICompose:
             elif key=="container_name":
                 cmd+=[f"--name {item}"]
             elif key=="entrypoint":
-                make_sh=lambda inner_cmd:f"\"bash -c \"{inner_cmd}\"\""
-                cmd+=["--entrypoint "+make_sh(" ".join(data["entrypoint"]))]
+                cmd+=[f"--entrypoint {item}"]
             else:
                 raise ValueError(f"{key} not supported.")
         return cmd
@@ -105,8 +104,7 @@ class CLICompose:
             elif key=="commands":
                 pass
             elif key=="entrypoint":
-                make_sh=lambda inner_cmd:f"\"bash -c \"{inner_cmd}\"\""
-                cmd+=["--entrypoint "+make_sh(" ".join(data["entrypoint"]))]
+                cmd+=[f"--entrypoint {item}"]
             elif key=="working_dir":
                 cmd+=[f"--pwd {item}"]
             else:

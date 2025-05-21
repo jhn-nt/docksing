@@ -1,0 +1,17 @@
+remotedir:  target_directory_on_remote_host
+
+slurm:
+  nodes: 1
+  cpus-per-task: 1
+  job-name: name_of_the_slurm_job
+
+container:
+  image:  alpine:latest
+  entrypoint: python3
+  commands: ["-c","print('hello')"]
+  environment:
+    - VARIABLE: color
+    - GOOGLE_APPLICATION_CREDENTIALS: credentials
+    - VALUE: red
+  volumes:
+    - /absolute/path/to/output:/output

@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="docksing",
-    version="0.2.29",
+    version="0.2.30",
     description="CLI Utility for deployment of containerized jobs on SLURM HPC ",
     long_description=long_description,
     long_description_content_type="text/markdown",

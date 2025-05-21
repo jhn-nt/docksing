@@ -108,8 +108,6 @@ class CLICompose:
                 pass
             elif key=="commands":
                 pass
-            elif key=="entrypoint":
-                pass
             elif key=="working_dir":
                 cmd+=[f"--pwd {item}"]
             else:
@@ -301,7 +299,7 @@ class DockSing:
             build_cmd=CLICompose.singularity_build_opt(iid,remotedir)
             run_cmd=CLICompose.singularity_run_opt(container_config,
                                                    override={"image":f"{remotedir}/{iid}.sif",**self.override_volumes(remotedir,container_config,send_payload=True)},
-                                                   ignore=["container_name"])
+                                                   ignore=["container_name","entrypoint"])
             opt_cmd=CLICompose.container_opt(container_config,"singularity")
 
             inner_cmd=" ".join(build_cmd+["&&"]+run_cmd+opt_cmd)
@@ -348,13 +346,13 @@ class DockSing:
             build_cmd=CLICompose.singularity_build_opt(iid,remotedir)
             run_cmd=CLICompose.singularity_run_opt(container_config,
                                                    override={"image":f"{remotedir}/{iid}.sif",**self.override_volumes(remotedir,container_config,send_payload=False)},
-                                                   ignore=["container_name"])
-            opt_cmd=CLICompose.container_opt(container_config)
+                                                   ignore=["container_name","entrypoint"])
+            opt_cmd=CLICompose.container_opt(container_config,"singularity")
 
             inner_cmd=" ".join(build_cmd+["&&"]+run_cmd+opt_cmd)
             cmd=" ".join(slurm_cmd)+f" bash -c \"{inner_cmd}\""
         else:
-            cmd=CLICompose.docker_run_opt(container_config)+CLICompose.container_opt(container_config)
+            cmd=CLICompose.docker_run_opt(container_config)+CLICompose.container_opt(container_config,"docker")
             cmd=" ".join(cmd)
         
         return cmd

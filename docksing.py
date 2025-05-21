@@ -102,9 +102,8 @@ class CLICompose:
             elif key=="image":
                 pass
             elif key=="commands":
-                pass
-            elif key=="entrypoint":
-                cmd+=[f"--entrypoint {item}"]
+                if "entrypoint" in data:
+                    data["commands"]=[data["entrypoint"],*data["commands"]]
             elif key=="working_dir":
                 cmd+=[f"--pwd {item}"]
             else:

@@ -129,11 +129,12 @@ class DockSing:
     docker: DockerClient=field(repr=False)
 
     @classmethod
-    def connect(cls,ssh:str)->DockSing:
+    def connect(cls,ssh:str,docker_timeout:int=60)->DockSing:
         """Instantiate a `Docksing` object by establishing a connection to the remote host via an `ssh` connection string and local docker daemon.
 
         Args:
             ssh (str): Connetion string in the form `username@hostname`
+            docker_timeout(int): Maximum seconds required to save an image. Larger images may require larger timeout values.
 
         Returns:
             DockSing: An instance of `DockSing` capable of communicating with the remote host and the local docker daemon.
@@ -144,7 +145,7 @@ class DockSing:
         ssh_client.set_missing_host_key_policy(AutoAddPolicy())
         ssh_client.connect(hostname=hostname,username=username,password=getpass(f"Password for {ssh}:"))
 
-        return cls(ssh=ssh_client,docker=docker.from_env())
+        return cls(ssh=ssh_client,docker=docker.from_env(timeout=docker_timeout))
     
     @classmethod
     def local(cls)->DockSing:
@@ -380,6 +381,7 @@ def main():
     parser.add_argument("--attach",action="store_true")
     parser.add_argument("--stream",action="store_true")
     parser.add_argument("--kill",action="store_true") #TODO
+    parser.add_argument("--timeout",action="store",default=60)
 
 
 
@@ -391,6 +393,7 @@ def main():
     CLI=args.cli
     ATTACH=args.attach
     STREAM=args.stream
+    TIMEOUT=int(args.timeout)
     
 
     if LOCAL:
@@ -398,7 +401,7 @@ def main():
     elif CLI:
         client=DockSing.local()
     else:
-        client=DockSing.connect(SSH)
+        client=DockSing.connect(SSH,docker_timeout=TIMEOUT)
 
     if CLI:
         print(client.cli(CONFIG["remotedir"],CONFIG["container"]["image"],CONFIG["container"],CONFIG["slurm"],LOCAL))

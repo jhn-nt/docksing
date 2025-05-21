@@ -32,10 +32,10 @@ class CLICompose:
         if "commands" in data.keys():
             assert isinstance(data["commands"],list)
             cmd+=[" ".join(data["commands"])]
-            
+
         if "entrypoint" in data.keys():
             assert isinstance(data["entrypoint"],list)
-            cmd+=[" ".join(data["entrypoint"])]
+            cmd+=["--entrypoint"+" ".join(data["entrypoint"])]
         return cmd
 
     @staticmethod

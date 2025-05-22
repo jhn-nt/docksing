@@ -155,7 +155,7 @@ docksing --ssh username@hostname --config config.yaml --stream
 ```
 
 ### Supported Compose Specification
-- `workdir`
+- `working_dir`
 - `environment`
 - `volumes`
 - `commands`
@@ -169,7 +169,8 @@ To squeeze the most out of DockSing it is advisable to have good proficiency wit
 Docksing was tested on a Windows Linux Subsytem, milage may very on other settings.
 
 ### Known Issues
-Depending on the image size and the performance of the machine hosting the local docker daemon,for larger images (>5GB) you may receive a timeout error: 
+#### Large Image Size
+Depending on the image size and the performance of the machine hosting the local docker daemon,for larger images (>5GB) you may receive a timeout     error: 
 ```python
 requests.exceptions.ReadTimeout: UnixHTTPConnectionPool(host='localhost', port=None): Read timed out. (read timeout=60)
 ```
@@ -177,4 +178,7 @@ This can be avoided by increasing the default timeout from 60 seconds to an high
 ```bash
 $ docksing --ssh username@hostname --config config.yaml --timeout 600
 ```
-
+#### Different default working directory in Docker and Singularity
+By default, Docker assignes `/root` as working directory, while singularity uses the current working directory.  
+This may cause odd behaviors when jobs that works when launched on docker fail on singularity.  
+The issue above can be addressed by explicitly decalring a `--working-dir` in the .yaml file.

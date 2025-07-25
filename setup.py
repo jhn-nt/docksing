@@ -5,12 +5,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="docksing",
-    version="0.2.35",
+    version="0.2.36",
     description="CLI Utility for deployment of containerized jobs on SLURM HPC ",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="G. Angelotti",
-    author_email="giovanni.angelotti@idsia.ch",
+    author_emairel="giovanni.angelotti@idsia.ch",
     py_modules=["docksing"],
     install_requires=[
         "paramiko==3.4.0",

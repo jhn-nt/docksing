@@ -18,6 +18,8 @@ import warnings
 import time
 import cmd
 
+def progress(filename, size, sent):
+    sys.stdout.write("%s\'s progress: %.2f%%   \r" % (filename, float(sent)/float(size)*100) )
 
 @dataclass
 class CLICompose:
@@ -200,7 +202,6 @@ class DockSing:
             tag (str): Name of the target image tag.
             remotedir (str): Absolute path of working directory on host.
         """
-        
         image=self.docker.images.get(tag)
         iid=image.short_id.split(":")[1]
         with io.BytesIO() as file:
@@ -209,7 +210,7 @@ class DockSing:
             file.seek(0)
 
             if self.ssh:
-                with SCPClient(self.ssh.get_transport()) as scp:
+                with SCPClient(self.ssh.get_transport(),progress=progress) as scp:
                     scp.putfo(file,f"{remotedir}/{iid}.tar")
             else:
                 with open(f"{remotedir}/{iid}.tar","wb") as f:
@@ -240,7 +241,7 @@ class DockSing:
             if send_payload and Path(local_dir).is_dir():
                 # If the mapping points to an existing local folder,
                 # we copy its content in remote_dir/local_host
-                with SCPClient(self.ssh.get_transport()) as scp:
+                with SCPClient(self.ssh.get_transport(),progress=progress) as scp:
                     scp.put(
                         local_dir,
                         remote_path=remote_dir,
